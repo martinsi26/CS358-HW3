@@ -1,16 +1,5 @@
-class A extends E{
-    int x;
-    public void foo() { }
-}
-
+class A extends Object{ }
 class B extends A { }
 class C extends B { }
-class D extends C 
-{
-    int y;
-    public int cow(int x) {
-        int x = 0;
-        return 0;
-    }
- }
+class D extends C { }
 class E extends D { }

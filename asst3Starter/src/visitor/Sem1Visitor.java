@@ -14,7 +14,6 @@ import errorMsg.*;
 //   (Object, String, Lib and RunMain)
 public class Sem1Visitor extends Visitor
 {
-
     HashMap<String,ClassDecl> classEnv;
     ClassDecl currentClass;
     ClassDeclList classes;
@@ -48,4 +47,38 @@ public class Sem1Visitor extends Visitor
         return null;
     }
 
+    public Object visit(ClassDecl c)
+    {
+        if(classEnv.containsKey(c.name)) {
+            errorMsg.error(c.pos, new DuplicateClassError(c.name));
+            return null;
+        }
+        classEnv.put(c.name, c);
+        currentClass = c;
+        c.decls.accept(this);
+        return null;
+    }
+
+    public Object visit(MethodDecl m)
+    {
+        if(currentClass.methodEnv.containsKey(m.name)) {
+            errorMsg.error(m.pos, new DuplicateMethodError(m.name));
+            return null;
+        }
+        currentClass.methodEnv.put(m.name, m);
+        m.formals.accept(this);
+        m.stmts.accept(this);
+        return null;
+    }
+
+    public Object visit(InstVarDecl f)
+    {
+        if(currentClass.fieldEnv.containsKey(f.name)) {
+            errorMsg.error(f.pos, new DuplicateFieldError(f.name));
+            return null;
+        }
+        currentClass.fieldEnv.put(f.name, f);
+        f.type.accept(this);
+        return null;
+    }
 }

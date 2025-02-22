@@ -151,12 +151,12 @@ public class Main
     {
         if(!errorMsg.anyErrors && ast != null)
         {
-            ClassListVisitor clv = new ClassListVisitor();
-            ast.accept(clv);
-            for(String cls : clv.classes())
-            {
-                System.out.println("class: " + cls);
-            }
+            // ClassListVisitor clv = new ClassListVisitor();
+            // ast.accept(clv);
+            // for(String cls : clv.classes())
+            // {
+            //     System.out.println("class: " + cls);
+            // }
             
             Sem1Visitor vis = new Sem1Visitor(errorMsg);
             ast.accept(vis);

@@ -49,4 +49,91 @@ public class Sem3Visitor extends Visitor
         breakTargetStack = new Stack<BreakTarget>();
     }
 
+    public Object visit(ClassDecl c)
+    {
+        currentClass = c;
+        c.decls.accept(this);
+        return null;
+    }
+
+    public Object visit(MethodDecl m)
+    {
+        m.formals.accept(this);
+        m.stmts.accept(this);
+        return null;
+    }
+
+    public Object visit(InstVarDecl f)
+    {
+        f.type.accept(this);
+        return null;
+    }
+
+    public Object visit(FormalDecl f)
+    {
+        localEnv.put(f.name, f);
+        f.type.accept(this);
+        return null;
+    }
+
+    public Object visit(LocalVarDecl l)
+    {
+        localEnv.put(l.name, l);
+        l.type.accept(this);
+        l.initExp.accept(this);
+        return null;
+    }
+
+    public Object visit(IdentifierExp e)
+    {
+        e.link = localEnv.get(e.name);
+        if(e.name == null) {
+            errorMsg.error(e.pos, new UndefinedVariableError(e.name));
+            return null;
+        }
+        return null;
+    }
+
+    public Object visit(IdentifierType t)
+    {
+        t.link = classEnv.get(currentClass.name);
+        if(t.name == null) {
+            errorMsg.error(t.pos, new UndefinedVariableError(t.name));
+        }
+        return null;
+    }
+
+    public Object visit(While w)
+    {
+        breakTargetStack.push(w);
+        w.exp.accept(this);
+        w.body.accept(this);
+        return null;
+    }
+
+    public Object visit(Switch s)
+    {
+        breakTargetStack.push(s);
+        s.exp.accept(this);
+        s.stmts.accept(this);
+        return null;
+    }
+
+    public Object visit(Break b)
+    {
+        if(breakTargetStack.empty())
+        {
+            errorMsg.error(b.pos, new BreakError());
+            return null;
+        }
+        b.breakLink = breakTargetStack.pop();
+        return null;
+    }
+
+    public Object visit(Label l)
+    {
+        l.enclosingSwitch = 
+        return null;
+    }
+
 }
