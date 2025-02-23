@@ -71,6 +71,10 @@ public class Sem3Visitor extends Visitor
 
     public Object visit(FormalDecl f)
     {
+        if(localEnv.containsKey(f.name)) {
+            // error
+            return null;
+        }
         localEnv.put(f.name, f);
         f.type.accept(this);
         return null;
@@ -78,6 +82,10 @@ public class Sem3Visitor extends Visitor
 
     public Object visit(LocalVarDecl l)
     {
+        if(localEnv.containsKey(l.name)) {
+            // error
+            return null;
+        }
         localEnv.put(l.name, l);
         l.type.accept(this);
         l.initExp.accept(this);
@@ -87,7 +95,17 @@ public class Sem3Visitor extends Visitor
     public Object visit(IdentifierExp e)
     {
         e.link = localEnv.get(e.name);
-        if(e.name == null) {
+        if(!localEnv.containsKey(e.name)) {
+            ClassDecl c = currentClass;
+            while(c.superLink == null) {
+                if(c.superLink.fieldEnv.containsKey(e.name)) {
+                    e.link = c.superLink.fieldEnv.get(e.name);
+                    break;
+                }
+                c = c.superLink;
+            }
+        }
+        if(e.link == null) {
             errorMsg.error(e.pos, new UndefinedVariableError(e.name));
             return null;
         }
@@ -96,11 +114,13 @@ public class Sem3Visitor extends Visitor
 
     public Object visit(IdentifierType t)
     {
-        t.link = classEnv.get(currentClass.name);
-        if(t.name == null) {
-            errorMsg.error(t.pos, new UndefinedVariableError(t.name));
+        if(classEnv.containsKey(t.name)) {
+            t.link = classEnv.get(t.name);
+            return null;
+        } else {
+            errorMsg.error(e.pos, new UndefinedVariableError(e.name));
+            return null;
         }
-        return null;
     }
 
     public Object visit(While w)
