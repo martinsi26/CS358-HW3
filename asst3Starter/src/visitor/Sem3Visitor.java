@@ -27,6 +27,8 @@ public class Sem3Visitor extends Visitor
     // set of initialized variables
     HashSet<String> init;
 
+    HashSet<String> block;
+
     // set of unused classes
     HashSet<String> unusedClasses;
 
@@ -96,6 +98,7 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         localEnv.put(l.name, l);
+        block.add(l.name);
         l.initExp.accept(this);
         init.add(l.name);
         return null;
@@ -173,4 +176,13 @@ public class Sem3Visitor extends Visitor
         return null;
     }
 
+    public Object visit(Block n)
+    {
+        block.clear();
+        n.stmts.accept(this);
+        for(String name : block) {
+            localEnv.remove(block);
+        }
+        return null;
+    }
 }
