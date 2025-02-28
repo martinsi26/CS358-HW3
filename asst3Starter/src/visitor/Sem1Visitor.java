@@ -78,7 +78,6 @@ public class Sem1Visitor extends Visitor
             return null;
         }
         currentClass.fieldEnv.put(f.name, f);
-        f.type.accept(this);
         return null;
     }
 }

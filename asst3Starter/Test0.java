@@ -6,6 +6,8 @@ class Main {
     	n++;
     	while (true) {
     		int count = n+4;
+			int a = 1;
+			break;
     		foo(count);
     	}
     }

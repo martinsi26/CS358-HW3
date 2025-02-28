@@ -94,6 +94,7 @@ public class TreeDrawerVisitor extends Visitor
     public Object visit(InstVarDecl n)
     {
         write("InstVarDecl["+n.name+"]",n);
+        run(n.type);
         return null;
     }
 

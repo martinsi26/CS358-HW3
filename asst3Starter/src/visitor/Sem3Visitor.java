@@ -47,6 +47,7 @@ public class Sem3Visitor extends Visitor
         classEnv         = env;
         localEnv         = new HashMap<String,VarDecl>();
         breakTargetStack = new Stack<BreakTarget>();
+        init             = new HashSet<String>();
     }
 
     public Object visit(ClassDecl c)
@@ -58,51 +59,66 @@ public class Sem3Visitor extends Visitor
 
     public Object visit(MethodDecl m)
     {
+        localEnv.clear();
+        for(String name : localEnv.keySet()) {
+            init.remove(name);
+        }
         m.formals.accept(this);
         m.stmts.accept(this);
         return null;
     }
 
-    public Object visit(InstVarDecl f)
+    public Object visit(InstVarDecl i)
     {
-        f.type.accept(this);
+        if(i.name.equals("length")) {
+            errorMsg.error(i.pos, new IllegalLengthError());
+            return null;
+        }
+        init.add(i.name);
         return null;
     }
 
     public Object visit(FormalDecl f)
     {
         if(localEnv.containsKey(f.name)) {
-            // error
+            errorMsg.error(f.pos, new DuplicateVariableError(f.name));
             return null;
         }
         localEnv.put(f.name, f);
-        f.type.accept(this);
+        init.add(f.name);
         return null;
     }
 
     public Object visit(LocalVarDecl l)
     {
         if(localEnv.containsKey(l.name)) {
-            // error
+            errorMsg.error(l.pos, new DuplicateVariableError(l.name));
             return null;
         }
         localEnv.put(l.name, l);
-        l.type.accept(this);
         l.initExp.accept(this);
+        init.add(l.name);
         return null;
     }
 
     public Object visit(IdentifierExp e)
     {
+        if(!init.contains(e.name)) {
+            errorMsg.error(e.pos, new UninitializedVariableError(e.name));
+            return null;
+        }
         e.link = localEnv.get(e.name);
         if(!localEnv.containsKey(e.name)) {
-            ClassDecl c = currentClass;
-            while(c.superLink == null) {
-                if(c.superLink.fieldEnv.containsKey(e.name)) {
-                    e.link = c.superLink.fieldEnv.get(e.name);
-                    break;
+            e.link = currentClass.fieldEnv.get(e.name);
+            if(!currentClass.fieldEnv.containsKey(e.name)) {
+                ClassDecl c = currentClass;
+                while(c.superLink != null) {
+                    if(c.superLink.fieldEnv.containsKey(e.name)) {
+                        e.link = c.superLink.fieldEnv.get(e.name);
+                        break;
+                    }
+                    c = c.superLink;
                 }
-                c = c.superLink;
             }
         }
         if(e.link == null) {
@@ -116,11 +132,10 @@ public class Sem3Visitor extends Visitor
     {
         if(classEnv.containsKey(t.name)) {
             t.link = classEnv.get(t.name);
-            return null;
         } else {
-            errorMsg.error(e.pos, new UndefinedVariableError(e.name));
-            return null;
+            errorMsg.error(t.pos, new UndefinedVariableError(t.name));
         }
+        return null;
     }
 
     public Object visit(While w)
@@ -128,6 +143,7 @@ public class Sem3Visitor extends Visitor
         breakTargetStack.push(w);
         w.exp.accept(this);
         w.body.accept(this);
+        breakTargetStack.pop();
         return null;
     }
 
@@ -136,6 +152,7 @@ public class Sem3Visitor extends Visitor
         breakTargetStack.push(s);
         s.exp.accept(this);
         s.stmts.accept(this);
+        breakTargetStack.pop();
         return null;
     }
 
@@ -146,13 +163,13 @@ public class Sem3Visitor extends Visitor
             errorMsg.error(b.pos, new BreakError());
             return null;
         }
-        b.breakLink = breakTargetStack.pop();
+        b.breakLink = breakTargetStack.peek();
         return null;
     }
 
     public Object visit(Label l)
     {
-        l.enclosingSwitch = 
+        l.enclosingSwitch = (Switch)breakTargetStack.peek();
         return null;
     }
 
