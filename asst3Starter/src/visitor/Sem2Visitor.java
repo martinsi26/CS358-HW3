@@ -25,27 +25,26 @@ public class Sem2Visitor extends Visitor
 
     public Object visit(ClassDecl c)
     {
-        if(c.superName.equals("String") || c.superName.equals("RunMain"))
-        {
+        if(c.superName.equals("String") || c.superName.equals("RunMain")) {
             errorMsg.error(c.pos, new IllegalSuperclassError(c.superName));
             return null;
         }
+        if(!classEnv.containsKey(c.superName)) {
+            errorMsg.error(c.pos, new UndefinedSuperclassError(c.superName));
+            return null;
+        }
         c.superLink = classEnv.get(c.superName);
-        for(ClassDecl d : classEnv.values()) 
-        {
-            if(d.superName == c.name) 
-            {
+        for(ClassDecl d : classEnv.values()) {
+            if(d.superName == c.name) {
                 c.subclasses.add(d);
             }
         }
         int n = classEnv.size();
         int i = 0;
-        while(c.superLink != null)
-        {
+        while(c.superLink != null) {
             c = c.superLink;
             i++;
-            if(i > n)
-            {
+            if(i > n) {
                 errorMsg.error(c.pos, new InheritanceCycleError(c.name));
                 return null;
             }

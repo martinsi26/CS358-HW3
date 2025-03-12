@@ -30,10 +30,10 @@ public class Sem3Visitor extends Visitor
     HashSet<String> block;
 
     // set of unused classes
-    HashSet<String> unusedClasses;
+    HashMap<String, ClassDecl> unusedClasses;
 
     // set of unused local variables
-    HashMap<String, ClassDecl> unusedLocals;
+    HashMap<String, VarDecl> unusedLocals;
 
     // stack of while/switch
     Stack<BreakTarget> breakTargetStack;
@@ -50,6 +50,26 @@ public class Sem3Visitor extends Visitor
         localEnv         = new HashMap<String,VarDecl>();
         breakTargetStack = new Stack<BreakTarget>();
         init             = new HashSet<String>();
+        block            = new HashSet<String>();
+        unusedLocals     = new HashMap<String,VarDecl>();
+        unusedClasses    = (HashMap<String,ClassDecl>) env.clone();
+        unusedClasses.remove("Main");
+        unusedClasses.remove("Lib");
+        unusedClasses.remove("RunMain");
+        unusedClasses.remove("Object");
+        unusedClasses.remove("String");
+    }
+
+    public Object visit(Program p)
+    {
+        p.classDecls.accept(this);
+        p.mainStatement.accept(this);
+        if(!unusedClasses.isEmpty()) {
+            for(ClassDecl c : unusedClasses.values()) {
+                errorMsg.warning(c.pos, new UnusedClassWarning(c.name));
+            }
+        }
+        return null;
     }
 
     public Object visit(ClassDecl c)
@@ -67,6 +87,12 @@ public class Sem3Visitor extends Visitor
         }
         m.formals.accept(this);
         m.stmts.accept(this);
+        if(!unusedLocals.isEmpty()) {
+            for(VarDecl v : unusedLocals.values()) {
+                errorMsg.warning(v.pos, new UnusedVariableWarning(v.name));
+            }
+            unusedLocals.clear();
+        }
         return null;
     }
 
@@ -87,6 +113,7 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         localEnv.put(f.name, f);
+        unusedLocals.put(f.name+f.uniqueId, f);
         init.add(f.name);
         return null;
     }
@@ -98,6 +125,7 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         localEnv.put(l.name, l);
+        unusedLocals.put(l.name+l.uniqueId, l);
         block.add(l.name);
         l.initExp.accept(this);
         init.add(l.name);
@@ -110,10 +138,13 @@ public class Sem3Visitor extends Visitor
             errorMsg.error(e.pos, new UninitializedVariableError(e.name));
             return null;
         }
-        e.link = localEnv.get(e.name);
-        if(!localEnv.containsKey(e.name)) {
-            e.link = currentClass.fieldEnv.get(e.name);
-            if(!currentClass.fieldEnv.containsKey(e.name)) {
+        if(localEnv.containsKey(e.name)) {
+            e.link = localEnv.get(e.name);
+            unusedLocals.remove(e.name+localEnv.get(e.name).uniqueId);
+        } else {
+            if(currentClass.fieldEnv.containsKey(e.name)) {
+                e.link = currentClass.fieldEnv.get(e.name);
+            } else {
                 ClassDecl c = currentClass;
                 while(c.superLink != null) {
                     if(c.superLink.fieldEnv.containsKey(e.name)) {
@@ -135,8 +166,14 @@ public class Sem3Visitor extends Visitor
     {
         if(classEnv.containsKey(t.name)) {
             t.link = classEnv.get(t.name);
+            unusedClasses.remove(t.name);
+            ClassDecl c = classEnv.get(t.name);
+            while(c.superLink != null) {
+                c = c.superLink;
+                unusedClasses.remove(c.name);
+            }
         } else {
-            errorMsg.error(t.pos, new UndefinedVariableError(t.name));
+            errorMsg.error(t.pos, new UndefinedClassError(t.name));
         }
         return null;
     }
@@ -176,12 +213,12 @@ public class Sem3Visitor extends Visitor
         return null;
     }
 
-    public Object visit(Block n)
+    public Object visit(Block b)
     {
         block.clear();
-        n.stmts.accept(this);
+        b.stmts.accept(this);
         for(String name : block) {
-            localEnv.remove(block);
+            localEnv.remove(name);
         }
         return null;
     }

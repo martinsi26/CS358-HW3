@@ -10,7 +10,19 @@ class Main {
 			break;
     		foo(count);
     	}
+		while (true) {
+			int count = 0;
+		}
+
+		{
+			int count = 1;
+		}
+
+		int count = 0;
+		int a = 0;
     }
     public void foo(int a) {
+
     }
 }
+

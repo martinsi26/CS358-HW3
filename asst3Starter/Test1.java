@@ -20,7 +20,6 @@ class Foo extends Baz {
             printStr("\n");
         }
     }
-    
 }
 class Baz extends Main {
     public int xyz(int a, String b) {
