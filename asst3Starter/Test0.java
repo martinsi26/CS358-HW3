@@ -1,28 +1,38 @@
-// The starter file should be able to parse this
-class Main {
-    int count;
+// class Main { // class Check2 {
+//     public void main() {
+// 	new Check2a().exec();
+//     }
+// }
+// class Check2a {
+//     public void exec() {
+//         { 
+// 			int i = 4;
+// 	  		i = 0;
+// 		}
+		
+// 		for (int i = 5; i < 20; i++) {
+
+// 		}
+		
+// 		{ 
+// 			int i = 4;
+// 			i = 0;
+// 		}
+//     }
+// }
+
+class Main { // class Test67 {
     public void main() {
-    	int n = count+2;
-    	n++;
-    	while (true) {
-    		int count = n+4;
-			int a = 1;
-			break;
-    		foo(count);
-    	}
-		while (true) {
-			int count = 0;
-		}
-
-		{
-			int count = 1;
-		}
-
-		int count = 0;
-		int a = 0;
-    }
-    public void foo(int a) {
-
+	new Test67a().exec();
     }
 }
+class Test67a {
+    public int exec() {
+	int abc = 0;
+	return abc;
+    }
+}
+
+
+
 

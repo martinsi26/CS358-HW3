@@ -43,6 +43,7 @@ public class Sem2Visitor extends Visitor
         int i = 0;
         while(c.superLink != null) {
             c = c.superLink;
+            c.superLink = classEnv.get(c.superName);
             i++;
             if(i > n) {
                 errorMsg.error(c.pos, new InheritanceCycleError(c.name));

@@ -27,7 +27,7 @@ public class Sem3Visitor extends Visitor
     // set of initialized variables
     HashSet<String> init;
 
-    HashSet<String> block;
+    Stack<HashSet<String>> blockStack;
 
     // set of unused classes
     HashMap<String, ClassDecl> unusedClasses;
@@ -50,7 +50,7 @@ public class Sem3Visitor extends Visitor
         localEnv         = new HashMap<String,VarDecl>();
         breakTargetStack = new Stack<BreakTarget>();
         init             = new HashSet<String>();
-        block            = new HashSet<String>();
+        blockStack       = new Stack<HashSet<String>>();
         unusedLocals     = new HashMap<String,VarDecl>();
         unusedClasses    = (HashMap<String,ClassDecl>) env.clone();
         unusedClasses.remove("Main");
@@ -75,6 +75,14 @@ public class Sem3Visitor extends Visitor
     public Object visit(ClassDecl c)
     {
         currentClass = c;
+
+        ClassDecl testC = c;
+        while(testC.superLink != null) {
+            for(String name : testC.superLink.fieldEnv.keySet()) {
+                init.add(name);
+            }
+            testC = testC.superLink;
+        }
         c.decls.accept(this);
         return null;
     }
@@ -82,16 +90,27 @@ public class Sem3Visitor extends Visitor
     public Object visit(MethodDecl m)
     {
         localEnv.clear();
-        for(String name : localEnv.keySet()) {
-            init.remove(name);
-        }
         m.formals.accept(this);
         m.stmts.accept(this);
-        if(!unusedLocals.isEmpty()) {
-            for(VarDecl v : unusedLocals.values()) {
-                errorMsg.warning(v.pos, new UnusedVariableWarning(v.name));
-            }
-            unusedLocals.clear();
+        return null;
+    }
+
+    public Object visit(MethodDeclNonVoid n)
+    {
+        n.rtnType.accept(this);
+        visit((MethodDecl)n);
+        n.rtnExp.accept(this);
+        for(VarDecl v : unusedLocals.values()) {
+            errorMsg.warning(v.pos, new UnusedVariableWarning(v.name));
+        }
+        return null;
+    }
+
+    public Object visit(MethodDeclVoid n)
+    {
+        visit((MethodDecl)n);
+        for(VarDecl v : unusedLocals.values()) {
+            errorMsg.warning(v.pos, new UnusedVariableWarning(v.name));
         }
         return null;
     }
@@ -103,7 +122,7 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         init.add(i.name);
-        return null;
+        return visit((VarDecl)i);
     }
 
     public Object visit(FormalDecl f)
@@ -113,9 +132,10 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         localEnv.put(f.name, f);
-        unusedLocals.put(f.name+f.uniqueId, f);
+        System.out.println("Add " + f.name);
+        unusedLocals.put(f.name, f);
         init.add(f.name);
-        return null;
+        return visit((VarDecl)f);
     }
 
     public Object visit(LocalVarDecl l)
@@ -125,22 +145,21 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         localEnv.put(l.name, l);
-        unusedLocals.put(l.name+l.uniqueId, l);
-        block.add(l.name);
+        unusedLocals.put(l.name, l);
+        if(!blockStack.isEmpty()) {
+            blockStack.peek().add(l.name);
+        }
+        init.remove(l.name);
         l.initExp.accept(this);
         init.add(l.name);
-        return null;
+        return visit((VarDecl)l);
     }
 
     public Object visit(IdentifierExp e)
     {
-        if(!init.contains(e.name)) {
-            errorMsg.error(e.pos, new UninitializedVariableError(e.name));
-            return null;
-        }
         if(localEnv.containsKey(e.name)) {
             e.link = localEnv.get(e.name);
-            unusedLocals.remove(e.name+localEnv.get(e.name).uniqueId);
+            unusedLocals.remove(e.name);
         } else {
             if(currentClass.fieldEnv.containsKey(e.name)) {
                 e.link = currentClass.fieldEnv.get(e.name);
@@ -157,6 +176,10 @@ public class Sem3Visitor extends Visitor
         }
         if(e.link == null) {
             errorMsg.error(e.pos, new UndefinedVariableError(e.name));
+            return null;
+        }
+        if(!init.contains(e.name)) {
+            errorMsg.error(e.pos, new UninitializedVariableError(e.name));
             return null;
         }
         return null;
@@ -215,10 +238,20 @@ public class Sem3Visitor extends Visitor
 
     public Object visit(Block b)
     {
-        block.clear();
+        blockStack.push(new HashSet<String>());
         b.stmts.accept(this);
-        for(String name : block) {
-            localEnv.remove(name);
+        if(!blockStack.isEmpty()) {
+            HashSet<String> currentBlock = blockStack.pop();
+            for(String name : currentBlock) {
+                localEnv.remove(name);
+                if(!currentClass.fieldEnv.containsKey(name)) {
+                    init.remove(name);
+                }
+                VarDecl v = unusedLocals.get(name);
+                if(v != null) {
+                    errorMsg.warning(v.pos, new UnusedVariableWarning(v.name));
+                }
+            }
         }
         return null;
     }
