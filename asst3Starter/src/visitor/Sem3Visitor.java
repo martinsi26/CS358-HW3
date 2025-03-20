@@ -132,7 +132,6 @@ public class Sem3Visitor extends Visitor
             return null;
         }
         localEnv.put(f.name, f);
-        System.out.println("Add " + f.name);
         unusedLocals.put(f.name, f);
         init.add(f.name);
         return visit((VarDecl)f);

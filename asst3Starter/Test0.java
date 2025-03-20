@@ -1,38 +1,15 @@
-// class Main { // class Check2 {
-//     public void main() {
-// 	new Check2a().exec();
-//     }
-// }
-// class Check2a {
-//     public void exec() {
-//         { 
-// 			int i = 4;
-// 	  		i = 0;
-// 		}
-		
-// 		for (int i = 5; i < 20; i++) {
-
-// 		}
-		
-// 		{ 
-// 			int i = 4;
-// 			i = 0;
-// 		}
-//     }
-// }
-
-class Main { // class Test67 {
-    public void main() {
-	new Test67a().exec();
+class Main { // class Error18 {
+public    void main() {
+	new Error18b().exec2();
     }
 }
-class Test67a {
+class Error18a {
     public int exec() {
-	int abc = 0;
+	return 4;
+    }
+}
+class Error18b extends Error18a {
+    public int exec2() {
 	return abc;
     }
 }
-
-
-
-
